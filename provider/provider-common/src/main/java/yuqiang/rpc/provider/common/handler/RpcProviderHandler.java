@@ -1,16 +1,24 @@
 package yuqiang.rpc.provider.common.handler;
 
 import com.alibaba.fastjson2.JSONObject;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import yuqiang.rpc.common.helper.RpcServiceHelper;
+import yuqiang.rpc.common.threadpool.ServerThreadPool;
 import yuqiang.rpc.potocol.RpcProtocol;
+import yuqiang.rpc.potocol.enumeration.RpcStatus;
 import yuqiang.rpc.potocol.enumeration.RpcType;
 import yuqiang.rpc.potocol.header.RpcHeader;
 import yuqiang.rpc.potocol.request.RpcRequest;
 import yuqiang.rpc.potocol.response.RpcResponse;
 
+import java.lang.reflect.Method;
 import java.util.Map;
 
 /**
@@ -32,19 +40,72 @@ public class RpcProviderHandler extends SimpleChannelInboundHandler<RpcProtocol<
         for (Map.Entry<String, Object> entry : handlerMap.entrySet()) {
             logger.info(entry.getKey() + " === " + entry.getValue());
         }
-        RpcHeader rpcHeader = rpcRequestRpcProtocol.getHeader();
-        RpcRequest rpcRequest = rpcRequestRpcProtocol.getBody();
-        //将请求头的消息类型设置为响应类型
-        rpcHeader.setMsgType((byte) RpcType.RESPONSE.getType());
-        //构建协议题响应数据
-        RpcProtocol<RpcResponse> rpcResponseRpcProtocol = new RpcProtocol<>();
-        RpcResponse response = new RpcResponse();
-        response.setResult("数据交互成功");
-        response.setAsync(rpcRequest.isAsync());
-        response.setOneway(rpcRequest.isOneway());
-        rpcResponseRpcProtocol.setBody(response);
-        rpcResponseRpcProtocol.setHeader(rpcHeader);
-        //直接返回数据
-        channelHandlerContext.writeAndFlush(rpcResponseRpcProtocol);
+
+        ServerThreadPool.submit(() -> {
+            RpcHeader rpcHeader = rpcRequestRpcProtocol.getHeader();
+            RpcRequest rpcRequest = rpcRequestRpcProtocol.getBody();
+            //将请求头的消息类型设置为响应类型
+            rpcHeader.setMsgType((byte) RpcType.RESPONSE.getType());
+            //构建协议题响应数据
+            RpcProtocol<RpcResponse> rpcResponseRpcProtocol = new RpcProtocol<>();
+            RpcResponse response = new RpcResponse();
+            try {
+                Object result = handle(rpcRequest);
+                rpcHeader.setStatus((byte) RpcStatus.SUCCESS.getCode());
+                response.setResult("数据交互成功");
+                response.setAsync(rpcRequest.isAsync());
+                response.setOneway(rpcRequest.isOneway());
+            } catch (Throwable t) {
+                response.setError(t.toString());
+                rpcHeader.setStatus((byte) RpcStatus.FAIL.getCode());
+                logger.error("RPC Server handle request error", t);
+            }
+            rpcResponseRpcProtocol.setBody(response);
+            rpcResponseRpcProtocol.setHeader(rpcHeader);
+            //直接返回数据
+            channelHandlerContext.writeAndFlush(rpcResponseRpcProtocol).addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                    logger.debug("Send response for request " + rpcHeader.getRequestId());
+                }
+            });
+
+        });
+    }
+
+
+    private Object handle(RpcRequest request) throws Throwable {
+        String serviceKey = RpcServiceHelper.buildServiceKey(request.getClassName(), request.getVersion(), request.getGroup());
+        Object serviceBean = handlerMap.get(serviceKey);
+        if (serviceBean == null) {
+            throw new RuntimeException(String.format("service not exist: %s:%s", request.getClassName(), request.getMethodName()));
+        }
+
+        Class<?> serviceClass = serviceBean.getClass();
+        String methodName = request.getMethodName();
+        Class<?>[] parameterTypes = request.getParameterTypes();
+        Object[] parameters = request.getParameters();
+
+        logger.debug(serviceClass.getName());
+        logger.debug(methodName);
+        if (parameterTypes != null && parameterTypes.length > 0){
+            for (int i = 0; i < parameterTypes.length; ++i) {
+                logger.debug(parameterTypes[i].getName());
+            }
+        }
+
+        if (parameters != null && parameters.length > 0){
+            for (int i = 0; i < parameters.length; ++i) {
+                logger.debug(parameters[i].toString());
+            }
+        }
+        return invokeMethod(serviceBean, serviceClass, methodName, parameterTypes, parameters);
+    }
+
+    public Object invokeMethod(Object serviceBean, Class<?> serviceClass, String methodName, Class<?>[] parameterTypes, Object[] parameters) throws Throwable {
+        logger.info("use jdk reflect type invoke method...");
+        Method method = serviceClass.getMethod(methodName, parameterTypes);
+        method.setAccessible(true);
+        return method.invoke(serviceBean, parameters);
     }
 }

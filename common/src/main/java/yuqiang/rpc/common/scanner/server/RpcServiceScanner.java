@@ -3,6 +3,7 @@ package yuqiang.rpc.common.scanner.server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import yuqiang.rpc.annotation.RpcService;
+import yuqiang.rpc.common.helper.RpcServiceHelper;
 import yuqiang.rpc.common.scanner.ClassScanner;
 
 import java.util.HashMap;
@@ -32,8 +33,8 @@ public class RpcServiceScanner extends ClassScanner {
                     LOGGER.info("version===>>> " + rpcService.version());
                     LOGGER.info("group===>>> " + rpcService.group());
                     String serviceName = getServiceName(rpcService);
-                    String key = serviceName.concat(rpcService.version()).concat(rpcService.group());
-                    handlerMap.put(key, clazz.newInstance());
+                    String key = RpcServiceHelper.buildServiceKey(serviceName,rpcService.version(),rpcService.group());
+                    handlerMap.put(key, clazz.getDeclaredConstructor().newInstance());
                 }
             } catch (Exception e) {
                 LOGGER.error("scan classes throws exception: {}", e);
