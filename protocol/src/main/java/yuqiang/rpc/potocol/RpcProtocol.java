@@ -4,7 +4,7 @@ import yuqiang.rpc.potocol.header.RpcHeader;
 
 import java.io.Serializable;
 
-public class RpcPotocol<T> implements Serializable {
+public class RpcProtocol<T> implements Serializable {
 
     /**
      * 消息头

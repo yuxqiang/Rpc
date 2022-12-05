@@ -3,17 +3,23 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>provider</artifactId>
+        <artifactId>rpc-learning</artifactId>
         <groupId>rpc</groupId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>provider-common</artifactId>
+    <artifactId>codec</artifactId>
     <dependencies>
         <dependency>
             <groupId>rpc</groupId>
-            <artifactId>codec</artifactId>
+            <artifactId>serialization-api</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>rpc</groupId>
+            <artifactId>protocol</artifactId>
             <version>1.0.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

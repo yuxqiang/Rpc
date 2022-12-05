@@ -13,6 +13,8 @@ import io.netty.handler.codec.string.StringEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
+import yuqiang.rpc.codec.RpcDecoder;
+import yuqiang.rpc.codec.RpcEncoder;
 import yuqiang.rpc.provider.common.handler.RpcProviderHandler;
 import yuqiang.rpc.provider.common.server.api.Server;
 
@@ -49,8 +51,8 @@ public class BaseServer implements Server {
                         protected void initChannel(SocketChannel channel) throws Exception {
                             channel.pipeline()
                                     //TODO 预留编解码，需要实现自定义协议
-                                    .addLast(new StringDecoder())
-                                    .addLast(new StringEncoder())
+                                    .addLast(new RpcDecoder())
+                                    .addLast(new RpcEncoder())
                                     .addLast(new RpcProviderHandler(handlerMap));
                         }
                     })
