@@ -7,10 +7,13 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
+import net.sf.cglib.reflect.FastClass;
+import net.sf.cglib.reflect.FastMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import yuqiang.rpc.common.helper.RpcServiceHelper;
 import yuqiang.rpc.common.threadpool.ServerThreadPool;
+import yuqiang.rpc.constants.RpcConstants;
 import yuqiang.rpc.potocol.RpcProtocol;
 import yuqiang.rpc.potocol.enumeration.RpcStatus;
 import yuqiang.rpc.potocol.enumeration.RpcType;
@@ -18,6 +21,7 @@ import yuqiang.rpc.potocol.header.RpcHeader;
 import yuqiang.rpc.potocol.request.RpcRequest;
 import yuqiang.rpc.potocol.response.RpcResponse;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 
@@ -29,8 +33,11 @@ public class RpcProviderHandler extends SimpleChannelInboundHandler<RpcProtocol<
 
     private final Map<String, Object> handlerMap;
 
-    public RpcProviderHandler(Map<String, Object> handlerMap) {
+    private final String reflectType;
+
+    public RpcProviderHandler(String reflectType, Map<String, Object> handlerMap) {
         this.handlerMap = handlerMap;
+        this.reflectType = reflectType;
     }
 
     @Override
@@ -88,13 +95,13 @@ public class RpcProviderHandler extends SimpleChannelInboundHandler<RpcProtocol<
 
         logger.debug(serviceClass.getName());
         logger.debug(methodName);
-        if (parameterTypes != null && parameterTypes.length > 0){
+        if (parameterTypes != null && parameterTypes.length > 0) {
             for (int i = 0; i < parameterTypes.length; ++i) {
                 logger.debug(parameterTypes[i].getName());
             }
         }
 
-        if (parameters != null && parameters.length > 0){
+        if (parameters != null && parameters.length > 0) {
             for (int i = 0; i < parameters.length; ++i) {
                 logger.debug(parameters[i].toString());
             }
@@ -103,9 +110,28 @@ public class RpcProviderHandler extends SimpleChannelInboundHandler<RpcProtocol<
     }
 
     public Object invokeMethod(Object serviceBean, Class<?> serviceClass, String methodName, Class<?>[] parameterTypes, Object[] parameters) throws Throwable {
+
+        switch (this.reflectType){
+            case RpcConstants.REFLECT_TYPE_JDK:
+                return invokeJdkMethod(serviceBean,serviceClass,methodName,parameterTypes,parameters);
+            case RpcConstants.REFLECT_TYPE_CGLIB:
+                return invokeCglibMethod(serviceBean,serviceClass,methodName,parameterTypes,parameters);
+            default:throw new IllegalArgumentException("参数不合法");
+        }
+
+    }
+
+    private Object invokeJdkMethod(Object serviceBean, Class<?> serviceClass, String methodName, Class<?>[] parameterTypes, Object[] parameters) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         logger.info("use jdk reflect type invoke method...");
         Method method = serviceClass.getMethod(methodName, parameterTypes);
         method.setAccessible(true);
+        return method.invoke(serviceBean, parameters);
+    }
+
+    private Object invokeCglibMethod(Object serviceBean, Class<?> serviceClass, String methodName, Class<?>[] parameterTypes, Object[] parameters) throws InvocationTargetException {
+        logger.info("use Cglib type invoke method...");
+        FastClass fastClass = FastClass.create(serviceClass);
+        FastMethod method = fastClass.getMethod(methodName, parameterTypes);
         return method.invoke(serviceBean, parameters);
     }
 }
