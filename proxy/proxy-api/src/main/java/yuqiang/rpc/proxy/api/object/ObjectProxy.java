@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import yuqiang.rpc.potocol.RpcProtocol;
 import yuqiang.rpc.potocol.header.RpcHeaderFactory;
 import yuqiang.rpc.potocol.request.RpcRequest;
+import yuqiang.rpc.proxy.api.async.IAsyncObjectProxy;
 import yuqiang.rpc.proxy.api.consumer.Consumer;
 import yuqiang.rpc.proxy.api.future.RpcFuture;
 
@@ -12,7 +13,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.concurrent.TimeUnit;
 
-public class ObjectProxy<T> implements InvocationHandler {
+public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
     private static final Logger LOGGER = LoggerFactory.getLogger(ObjectProxy.class);
 
     /**
@@ -52,10 +53,12 @@ public class ObjectProxy<T> implements InvocationHandler {
      * 是否单向调用
      */
     private boolean oneway;
+
     public ObjectProxy(Class<T> clazz) {
         this.clazz = clazz;
     }
-    public ObjectProxy(Class<T> clazz, String serviceVersion, String serviceGroup, String serializationType, long timeout,Consumer consumer, boolean async, boolean oneway) {
+
+    public ObjectProxy(Class<T> clazz, String serviceVersion, String serviceGroup, String serializationType, long timeout, Consumer consumer, boolean async, boolean oneway) {
         this.clazz = clazz;
         this.serviceVersion = serviceVersion;
         this.timeout = timeout;
@@ -65,6 +68,7 @@ public class ObjectProxy<T> implements InvocationHandler {
         this.async = async;
         this.oneway = oneway;
     }
+
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if (Object.class == method.getDeclaringClass()) {
@@ -100,13 +104,13 @@ public class ObjectProxy<T> implements InvocationHandler {
         LOGGER.debug(method.getDeclaringClass().getName());
         LOGGER.debug(method.getName());
 
-        if (method.getParameterTypes() != null && method.getParameterTypes().length > 0){
+        if (method.getParameterTypes() != null && method.getParameterTypes().length > 0) {
             for (int i = 0; i < method.getParameterTypes().length; ++i) {
                 LOGGER.debug(method.getParameterTypes()[i].getName());
             }
         }
 
-        if (args != null && args.length > 0){
+        if (args != null && args.length > 0) {
             for (int i = 0; i < args.length; ++i) {
                 LOGGER.debug(args[i].toString());
             }
@@ -114,5 +118,74 @@ public class ObjectProxy<T> implements InvocationHandler {
 
         RpcFuture rpcFuture = this.consumer.sendRequest(requestRpcProtocol);
         return rpcFuture == null ? null : timeout > 0 ? rpcFuture.get(timeout, TimeUnit.MILLISECONDS) : rpcFuture.get();
+    }
+
+    @Override
+    public RpcFuture call(String functionName, Object... args) {
+        RpcProtocol<RpcRequest> requestRpcProtocol = createRequest(this.clazz.getName(), functionName, args);
+        RpcFuture rpcFuture = null;
+        try {
+            rpcFuture = this.consumer.sendRequest(requestRpcProtocol);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return rpcFuture;
+    }
+
+    private RpcProtocol<RpcRequest> createRequest(String className, String methodName, Object[] args) {
+
+        RpcProtocol<RpcRequest> requestRpcProtocol = new RpcProtocol<RpcRequest>();
+
+        requestRpcProtocol.setHeader(RpcHeaderFactory.getRequestHeader(serializationType));
+
+        RpcRequest request = new RpcRequest();
+        request.setClassName(className);
+        request.setMethodName(methodName);
+        request.setParameters(args);
+        request.setVersion(this.serviceVersion);
+        request.setGroup(this.serviceGroup);
+
+        Class[] parameterTypes = new Class[args.length];
+        // Get the right class type
+        for (int i = 0; i < args.length; i++) {
+            parameterTypes[i] = getClassType(args[i]);
+        }
+        request.setParameterTypes(parameterTypes);
+        requestRpcProtocol.setBody(request);
+
+        LOGGER.debug(className);
+        LOGGER.debug(methodName);
+        for (int i = 0; i < parameterTypes.length; ++i) {
+            LOGGER.debug(parameterTypes[i].getName());
+        }
+        for (int i = 0; i < args.length; ++i) {
+            LOGGER.debug(args[i].toString());
+        }
+
+        return requestRpcProtocol;
+    }
+
+    private Class<?> getClassType(Object obj) {
+        Class<?> classType = obj.getClass();
+        String typeName = classType.getName();
+        switch (typeName) {
+            case "java.lang.Integer":
+                return Integer.TYPE;
+            case "java.lang.Long":
+                return Long.TYPE;
+            case "java.lang.Float":
+                return Float.TYPE;
+            case "java.lang.Double":
+                return Double.TYPE;
+            case "java.lang.Character":
+                return Character.TYPE;
+            case "java.lang.Boolean":
+                return Boolean.TYPE;
+            case "java.lang.Short":
+                return Short.TYPE;
+            case "java.lang.Byte":
+                return Byte.TYPE;
+        }
+        return classType;
     }
 }

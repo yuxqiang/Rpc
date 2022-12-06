@@ -1,7 +1,9 @@
 package yuqiang.rpc.consumer;
 
 import yuqiang.rpc.consumer.common.RpcConsumer;
+import yuqiang.rpc.proxy.api.async.IAsyncObjectProxy;
 import yuqiang.rpc.proxy.api.jdk.JdkProxyFactory;
+import yuqiang.rpc.proxy.api.object.ObjectProxy;
 
 public class RpcClient {
     private String serviceVersion;
@@ -30,6 +32,10 @@ public class RpcClient {
     public <T> T create(Class<T> interfaceClass) {
         JdkProxyFactory jdkProxyFactory = new JdkProxyFactory(serviceVersion, serviceGroup, timeout, RpcConsumer.getInstance(), serializationType, async, oneway);
         return jdkProxyFactory.getProxy(interfaceClass);
+    }
+
+    public <T> IAsyncObjectProxy createAsync(Class<T> interfaceClass) {
+        return new ObjectProxy<T>(interfaceClass, serviceVersion, serviceGroup, serializationType, timeout, RpcConsumer.getInstance(), async, oneway);
     }
 
     public void shutdown() {
