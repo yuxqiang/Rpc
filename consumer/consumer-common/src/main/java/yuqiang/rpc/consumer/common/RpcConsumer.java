@@ -8,6 +8,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import yuqiang.rpc.consumer.common.future.RpcFuture;
 import yuqiang.rpc.consumer.common.handler.RpcConsumerHandler;
 import yuqiang.rpc.consumer.common.initialzer.RpcConsumerInitializer;
 import yuqiang.rpc.potocol.RpcProtocol;
@@ -50,7 +51,7 @@ public class RpcConsumer {
         eventLoopGroup.shutdownGracefully();
     }
 
-    public Object sendRequest(RpcProtocol<RpcRequest> protocol) throws Exception {
+    public RpcFuture sendRequest(RpcProtocol<RpcRequest> protocol) throws Exception {
         String serviceAddress = "127.0.0.1";
         int port = 21880;
         String key = serviceAddress.concat("_").concat(String.valueOf(port));

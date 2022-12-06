@@ -8,6 +8,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import yuqiang.rpc.consumer.common.future.RpcFuture;
 import yuqiang.rpc.potocol.RpcProtocol;
 import yuqiang.rpc.potocol.header.RpcHeader;
 import yuqiang.rpc.potocol.request.RpcRequest;
@@ -22,7 +23,7 @@ public class RpcConsumerHandler extends SimpleChannelInboundHandler<RpcProtocol<
     private volatile Channel channel;
     private SocketAddress remotePeer;
 
-    private Map<Long, RpcProtocol<RpcResponse>> pendingResponse = new ConcurrentHashMap<>();
+    private Map<Long, RpcFuture> pendingRPC = new ConcurrentHashMap<>();
 
     public Channel getChannel() {
         return channel;
@@ -60,27 +61,32 @@ public class RpcConsumerHandler extends SimpleChannelInboundHandler<RpcProtocol<
         logger.info("服务消费者接收到的数据===>>>{}", JSONObject.toJSONString(protocol));
         RpcHeader rpcHeader = protocol.getHeader();
         long requestId = rpcHeader.getRequestId();
-        pendingResponse.put(requestId,protocol);
+        RpcFuture rpcFuture = pendingRPC.remove(requestId);
+        if (rpcFuture != null) {
+            rpcFuture.done(protocol);
+        }
     }
 
     /**
      * 服务消费者向服务提供者发送请求
      */
-    public Object sendRequest(RpcProtocol<RpcRequest> protocol) {
+    public RpcFuture sendRequest(RpcProtocol<RpcRequest> protocol) {
         logger.info("服务消费者发送的数据===>>>{}", JSONObject.toJSONString(protocol));
+        RpcFuture rpcFuture = this.getRpcFuture(protocol);
         channel.writeAndFlush(protocol);
-        RpcHeader rpcHeader = protocol.getHeader();
-        long requestId = rpcHeader.getRequestId();
-        while (true) {
-            RpcProtocol<RpcResponse> responseRpcProtocol = pendingResponse.remove(requestId);
-            if (responseRpcProtocol != null) {
-                return responseRpcProtocol.getBody().getResult();
-            }
-        }
+        return rpcFuture;
     }
 
     public void close() {
         channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+    }
+
+    public RpcFuture getRpcFuture(RpcProtocol<RpcRequest> protocol){
+        RpcFuture rpcFuture = new RpcFuture(protocol);
+        RpcHeader header = protocol.getHeader();
+        long requestId = header.getRequestId();
+        pendingRPC.put(requestId, rpcFuture);
+        return rpcFuture;
     }
 
 }
