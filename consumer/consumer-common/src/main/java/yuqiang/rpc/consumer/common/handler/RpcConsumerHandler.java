@@ -8,6 +8,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import yuqiang.rpc.consumer.common.context.RpcContext;
 import yuqiang.rpc.consumer.common.future.RpcFuture;
 import yuqiang.rpc.potocol.RpcProtocol;
 import yuqiang.rpc.potocol.header.RpcHeader;
@@ -70,11 +71,32 @@ public class RpcConsumerHandler extends SimpleChannelInboundHandler<RpcProtocol<
     /**
      * 服务消费者向服务提供者发送请求
      */
-    public RpcFuture sendRequest(RpcProtocol<RpcRequest> protocol) {
+    public RpcFuture sendRequest(RpcProtocol<RpcRequest> protocol,boolean async,boolean oneway) {
+        logger.info("服务消费者发送的数据===>>>{}", JSONObject.toJSONString(protocol));
+        RpcFuture rpcFuture = this.getRpcFuture(protocol);
+        channel.writeAndFlush(protocol);
+        return oneway?this.sendRequestOneWay(protocol):async?sendRequestAsync(protocol):this.sendRequestSync(protocol);
+    }
+
+    public RpcFuture sendRequestSync(RpcProtocol<RpcRequest> protocol) {
         logger.info("服务消费者发送的数据===>>>{}", JSONObject.toJSONString(protocol));
         RpcFuture rpcFuture = this.getRpcFuture(protocol);
         channel.writeAndFlush(protocol);
         return rpcFuture;
+    }
+
+    public RpcFuture sendRequestAsync(RpcProtocol<RpcRequest> protocol) {
+        logger.info("服务消费者发送的数据===>>>{}", JSONObject.toJSONString(protocol));
+        RpcFuture rpcFuture = this.getRpcFuture(protocol);
+        RpcContext.getContext().setRPCFuture(rpcFuture);
+        channel.writeAndFlush(protocol);
+        return null;
+    }
+
+    public RpcFuture sendRequestOneWay(RpcProtocol<RpcRequest> protocol) {
+        logger.info("服务消费者发送的数据===>>>{}", JSONObject.toJSONString(protocol));
+        channel.writeAndFlush(protocol);
+        return null;
     }
 
     public void close() {
