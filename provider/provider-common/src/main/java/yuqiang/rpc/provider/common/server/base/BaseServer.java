@@ -8,13 +8,12 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 import yuqiang.rpc.codec.RpcDecoder;
 import yuqiang.rpc.codec.RpcEncoder;
+import yuqiang.rpc.constants.RpcConstants;
 import yuqiang.rpc.provider.common.handler.RpcProviderHandler;
 import yuqiang.rpc.provider.common.server.api.Server;
 
@@ -31,39 +30,48 @@ public class BaseServer implements Server {
     //存储的是实体类关系
     protected Map<String, Object> handlerMap = new HashMap<>();
 
-    public BaseServer(String serverAddress){
-        if (!StringUtils.isEmpty(serverAddress)){
+    /**
+     * 反射类型
+     */
+    private String reflectType;
+
+    public BaseServer(String serverAddress, String reflectType) {
+        if (!StringUtils.isEmpty(serverAddress)) {
             String[] serverArray = serverAddress.split(":");
             this.host = serverArray[0];
             this.port = Integer.parseInt(serverArray[1]);
         }
+        if (reflectType == null || reflectType == "") {
+            reflectType= RpcConstants.PROXY_JDK;
+        }
+        this.reflectType = reflectType;
     }
 
     @Override
     public void startNettyServer() {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
-        try{
+        try {
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
-                    .childHandler(new ChannelInitializer<SocketChannel>(){
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel channel) throws Exception {
                             channel.pipeline()
                                     //TODO 预留编解码，需要实现自定义协议
                                     .addLast(new RpcDecoder())
                                     .addLast(new RpcEncoder())
-                                    .addLast(new RpcProviderHandler(handlerMap));
+                                    .addLast(new RpcProviderHandler(reflectType,handlerMap));
                         }
                     })
-                    .option(ChannelOption.SO_BACKLOG,128)
+                    .option(ChannelOption.SO_BACKLOG, 128)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
             ChannelFuture future = bootstrap.bind(host, port).sync();
             logger.info("Server started on {}:{}", host, port);
             future.channel().closeFuture().sync();
-        }catch (Exception e){
+        } catch (Exception e) {
             logger.error("RPC Server start error", e);
-        }finally {
+        } finally {
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
         }
