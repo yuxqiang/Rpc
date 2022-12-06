@@ -17,6 +17,7 @@
         <module>constants</module>
         <module>serialization</module>
         <module>codec</module>
+        <module>consumer</module>
     </modules>
 
     <properties>
