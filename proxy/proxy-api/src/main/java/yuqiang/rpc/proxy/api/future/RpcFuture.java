@@ -1,12 +1,13 @@
-package yuqiang.rpc.consumer.common.future;
+package yuqiang.rpc.proxy.api.future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import yuqiang.rpc.common.threadpool.ClientThreadPool;
-import yuqiang.rpc.consumer.common.callback.AsyncRpcCallback;
 import yuqiang.rpc.potocol.RpcProtocol;
 import yuqiang.rpc.potocol.request.RpcRequest;
 import yuqiang.rpc.potocol.response.RpcResponse;
+import yuqiang.rpc.proxy.api.callback.AsyncRpcCallback;
 
 import java.util.ArrayList;
 import java.util.List;

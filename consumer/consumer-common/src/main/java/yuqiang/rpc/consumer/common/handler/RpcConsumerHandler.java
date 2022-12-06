@@ -9,7 +9,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import yuqiang.rpc.consumer.common.context.RpcContext;
-import yuqiang.rpc.consumer.common.future.RpcFuture;
+import yuqiang.rpc.proxy.api.future.RpcFuture;
 import yuqiang.rpc.potocol.RpcProtocol;
 import yuqiang.rpc.potocol.header.RpcHeader;
 import yuqiang.rpc.potocol.request.RpcRequest;

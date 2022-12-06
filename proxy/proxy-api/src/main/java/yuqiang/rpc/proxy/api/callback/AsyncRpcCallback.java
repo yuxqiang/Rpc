@@ -1,4 +1,4 @@
-package yuqiang.rpc.consumer.common.callback;
+package yuqiang.rpc.proxy.api.callback;
 
 public interface AsyncRpcCallback {
 

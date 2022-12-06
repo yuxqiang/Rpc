@@ -9,7 +9,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import yuqiang.rpc.common.threadpool.ClientThreadPool;
-import yuqiang.rpc.consumer.common.future.RpcFuture;
+import yuqiang.rpc.proxy.api.consumer.Consumer;
+import yuqiang.rpc.proxy.api.future.RpcFuture;
 import yuqiang.rpc.consumer.common.handler.RpcConsumerHandler;
 import yuqiang.rpc.consumer.common.initialzer.RpcConsumerInitializer;
 import yuqiang.rpc.potocol.RpcProtocol;
@@ -18,7 +19,7 @@ import yuqiang.rpc.potocol.request.RpcRequest;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class RpcConsumer {
+public class RpcConsumer implements Consumer {
 
     private final static Logger logger = LoggerFactory.getLogger(RpcConsumer.class);
 
@@ -53,7 +54,8 @@ public class RpcConsumer {
         ClientThreadPool.shutdown();
     }
 
-    public RpcFuture sendRequest(RpcProtocol<RpcRequest> protocol) throws Exception {
+    @Override
+    public RpcFuture sendRequest(RpcProtocol<RpcRequest> protocol) throws InterruptedException {
         String serviceAddress = "127.0.0.1";
         int port = 21880;
         String key = serviceAddress.concat("_").concat(String.valueOf(port));

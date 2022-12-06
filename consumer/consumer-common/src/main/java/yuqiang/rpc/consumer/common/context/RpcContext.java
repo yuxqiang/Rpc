@@ -1,6 +1,6 @@
 package yuqiang.rpc.consumer.common.context;
 
-import yuqiang.rpc.consumer.common.future.RpcFuture;
+import yuqiang.rpc.proxy.api.future.RpcFuture;
 
 public class RpcContext {
 
