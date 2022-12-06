@@ -11,7 +11,11 @@ public class RpcResponse extends RpcMessage {
 
     private Object result;
 
-    public String getError() {
+    public boolean isError() {
+        return error != null;
+    }
+
+    public String  getError() {
         return error;
     }
 
