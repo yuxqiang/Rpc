@@ -26,6 +26,7 @@
         <module>loadbalance/loadbalance-api</module>
         <module>loadbalance/loadbalance-random</module>
         <module>spi</module>
+        <module>proxy/proxy-cglib</module>
     </modules>
 
     <properties>
