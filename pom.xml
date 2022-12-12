@@ -25,6 +25,7 @@
         <module>loadbalance</module>
         <module>loadbalance/loadbalance-api</module>
         <module>loadbalance/loadbalance-random</module>
+        <module>spi</module>
     </modules>
 
     <properties>
