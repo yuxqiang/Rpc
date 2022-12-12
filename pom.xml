@@ -19,6 +19,9 @@
         <module>codec</module>
         <module>consumer</module>
         <module>proxy</module>
+        <module>register</module>
+        <module>register/register-api</module>
+        <module>register/register-zookeeper</module>
     </modules>
 
     <properties>

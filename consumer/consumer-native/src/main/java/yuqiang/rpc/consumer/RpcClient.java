@@ -42,6 +42,5 @@ public class RpcClient {
 
     public void shutdown() {
         RpcConsumer.getInstance().close();
-
     }
 }
