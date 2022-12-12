@@ -16,6 +16,9 @@ import yuqiang.rpc.codec.RpcEncoder;
 import yuqiang.rpc.constants.RpcConstants;
 import yuqiang.rpc.provider.common.handler.RpcProviderHandler;
 import yuqiang.rpc.provider.common.server.api.Server;
+import yuqiang.rpc.register.api.RegisterService;
+import yuqiang.rpc.register.api.config.RegisterConfig;
+import yuqiang.rpc.registry.zookeeper.ZookeeperRegistryService;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,12 +33,14 @@ public class BaseServer implements Server {
     //存储的是实体类关系
     protected Map<String, Object> handlerMap = new HashMap<>();
 
+    protected RegisterService registerService;
+
     /**
      * 反射类型
      */
     private String reflectType;
 
-    public BaseServer(String serverAddress, String reflectType) {
+    public BaseServer(String serverAddress, String registerAddress,String registryType,String reflectType) {
         if (!StringUtils.isEmpty(serverAddress)) {
             String[] serverArray = serverAddress.split(":");
             this.host = serverArray[0];
@@ -45,6 +50,7 @@ public class BaseServer implements Server {
             reflectType= RpcConstants.PROXY_JDK;
         }
         this.reflectType = reflectType;
+        this.registerService = this.getRegistryService(registerAddress, registryType);
     }
 
     @Override
@@ -77,5 +83,17 @@ public class BaseServer implements Server {
         }
 
 
+    }
+
+    private RegisterService getRegistryService(String registryAddress, String registryType) {
+        //TODO 后续扩展支持SPI
+        RegisterService registryService = null;
+        try {
+            registryService = new ZookeeperRegistryService();
+            registryService.init(new RegisterConfig(registryAddress, registryType));
+        }catch (Exception e){
+            logger.error("RPC Server init error", e);
+        }
+        return registryService;
     }
 }

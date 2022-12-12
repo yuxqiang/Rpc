@@ -1,10 +1,13 @@
-package yuqiang.rpc.common.scanner.server;
+package yuqiang.rpc.provider.common.scanner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import yuqiang.rpc.annotation.RpcService;
 import yuqiang.rpc.common.helper.RpcServiceHelper;
 import yuqiang.rpc.common.scanner.ClassScanner;
+import yuqiang.rpc.constants.RpcConstants;
+import yuqiang.rpc.potocol.meta.ServiceMeta;
+import yuqiang.rpc.register.api.RegisterService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -13,7 +16,7 @@ import java.util.Map;
 public class RpcServiceScanner extends ClassScanner {
     private static final Logger LOGGER = LoggerFactory.getLogger(RpcServiceScanner.class);
 
-    public static Map<String, Object> doScannerWithRpcServiceAnnotationFilterAndRegistryService(/*String host, int port, */ String scanPackage/*, RegistryService registryService*/) throws Exception {
+    public static Map<String, Object> doScannerWithRpcServiceAnnotationFilterAndRegistryService(String host, int port, String scanPackage, RegisterService registryService) throws Exception {
         Map<String, Object> handlerMap = new HashMap<>();
         List<String> classNameList = getClassNameList(scanPackage);
         if (classNameList == null || classNameList.isEmpty()) {
@@ -32,9 +35,12 @@ public class RpcServiceScanner extends ClassScanner {
                     LOGGER.info("interfaceClassName===>>> " + rpcService.interfaceClassName());
                     LOGGER.info("version===>>> " + rpcService.version());
                     LOGGER.info("group===>>> " + rpcService.group());
-                    String serviceName = getServiceName(rpcService);
-                    String key = RpcServiceHelper.buildServiceKey(serviceName,rpcService.version(),rpcService.group());
-                    handlerMap.put(key, clazz.getDeclaredConstructor().newInstance());
+
+                    //优先使用interfaceClass, interfaceClass的name为空，再使用interfaceClassName
+                    ServiceMeta serviceMeta = new ServiceMeta(getServiceName(rpcService), rpcService.version(), host, port, rpcService.group());
+                    //将元数据注册到注册中心
+                    registryService.register(serviceMeta);
+                    handlerMap.put(RpcServiceHelper.buildServiceKey(serviceMeta.getServiceName(), serviceMeta.getServiceVersion(), serviceMeta.getServiceGroup()), clazz.newInstance());
                 }
             } catch (Exception e) {
                 LOGGER.error("scan classes throws exception: {}", e);
@@ -57,6 +63,16 @@ public class RpcServiceScanner extends ClassScanner {
             serviceName = rpcService.interfaceClassName();
         }
         return serviceName;
+    }
+
+    private static int getWeight(int weight) {
+        if (weight < RpcConstants.SERVICE_WEIGHT_MIN) {
+            weight = RpcConstants.SERVICE_WEIGHT_MIN;
+        }
+        if (weight > RpcConstants.SERVICE_WEIGHT_MAX) {
+            weight = RpcConstants.SERVICE_WEIGHT_MAX;
+        }
+        return weight;
     }
 
 }
