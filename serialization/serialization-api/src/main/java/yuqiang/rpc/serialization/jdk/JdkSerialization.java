@@ -4,9 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import yuqiang.rpc.common.exception.SerializerException;
 import yuqiang.rpc.serialization.api.Serialization;
+import yuqiang.rpc.spi.annotation.SPIClass;
 
 import java.io.*;
 
+@SPIClass
 public class JdkSerialization implements Serialization {
     private final Logger logger = LoggerFactory.getLogger(JdkSerialization.class);
     @Override

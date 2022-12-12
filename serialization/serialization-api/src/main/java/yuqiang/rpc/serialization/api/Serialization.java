@@ -1,8 +1,12 @@
 package yuqiang.rpc.serialization.api;
 
+import yuqiang.rpc.constants.RpcConstants;
+import yuqiang.rpc.spi.annotation.SPI;
+
 /**
  * 序列化接口
  */
+@SPI(RpcConstants.SERIALIZATION_JDK)
 public interface Serialization {
     /**
      * 序列化
