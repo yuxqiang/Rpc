@@ -8,6 +8,8 @@ import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.curator.x.discovery.details.JsonInstanceSerializer;
 import yuqiang.rpc.common.helper.RpcServiceHelper;
+import yuqiang.rpc.loadbalancer.api.ServerLoadbalancer;
+import yuqiang.rpc.loadbalancer.random.RandomServerLoadbalancer;
 import yuqiang.rpc.potocol.meta.ServiceMeta;
 import yuqiang.rpc.register.api.RegisterService;
 import yuqiang.rpc.register.api.config.RegisterConfig;
@@ -23,6 +25,8 @@ public class ZookeeperRegistryService implements RegisterService {
     public static final String ZK_BASE_PATH = "/binghe_rpc";
 
     private ServiceDiscovery<ServiceMeta> serviceDiscovery;
+
+    private ServerLoadbalancer<ServiceInstance<ServiceMeta>> serverLoadbalancer;
 
     @Override
     public void register(ServiceMeta serviceMeta) throws Exception {
@@ -53,17 +57,12 @@ public class ZookeeperRegistryService implements RegisterService {
     @Override
     public ServiceMeta discovery(String serviceName, int invokeHashCode) throws Exception {
         Collection<ServiceInstance<ServiceMeta>> serviceInstances = serviceDiscovery.queryForInstances(serviceName);
-       return this.selectOneServiceInstance((List<ServiceInstance<ServiceMeta>>)serviceInstances).getPayload();
+        return this.selectOneServiceInstance((List<ServiceInstance<ServiceMeta>>) serviceInstances, invokeHashCode).getPayload();
     }
 
 
-    private ServiceInstance<ServiceMeta> selectOneServiceInstance(List<ServiceInstance<ServiceMeta>> serviceInstances) {
-        if (serviceInstances == null || serviceInstances.isEmpty()) {
-            return null;
-        }
-        Random random = new Random();
-        int r = random.nextInt(serviceInstances.size());
-        return serviceInstances.get(r);
+    private ServiceInstance<ServiceMeta> selectOneServiceInstance(List<ServiceInstance<ServiceMeta>> serviceInstances, int invokeHashCode) {
+        return serverLoadbalancer.select(serviceInstances, invokeHashCode);
     }
 
     @Override
@@ -82,6 +81,7 @@ public class ZookeeperRegistryService implements RegisterService {
                 .basePath(ZK_BASE_PATH)
                 .build();
         this.serviceDiscovery.start();
+        this.serverLoadbalancer = new RandomServerLoadbalancer<ServiceInstance<ServiceMeta>>();
 //        //增强型负载均衡策略
 //        if (registryConfig.getRegistryLoadBalanceType().toLowerCase().contains(RpcConstants.SERVICE_ENHANCED_LOAD_BALANCER_PREFIX)){
 //            this.serviceEnhancedLoadBalancer = ExtensionLoader.getExtension(ServiceLoadBalancer.class, registryConfig.getRegistryLoadBalanceType());

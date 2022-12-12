@@ -22,6 +22,9 @@
         <module>register</module>
         <module>register/register-api</module>
         <module>register/register-zookeeper</module>
+        <module>loadbalance</module>
+        <module>loadbalance/loadbalance-api</module>
+        <module>loadbalance/loadbalance-random</module>
     </modules>
 
     <properties>
