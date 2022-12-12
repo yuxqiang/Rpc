@@ -1,6 +1,7 @@
 package yuqiang.rpc.proxy.api.config;
 
 import yuqiang.rpc.proxy.api.consumer.Consumer;
+import yuqiang.rpc.register.api.RegisterService;
 
 import java.io.Serializable;
 
@@ -43,10 +44,20 @@ public class ProxyConfig<T> implements Serializable {
      */
     private boolean oneway;
 
+    private RegisterService registerService;
+
+    public RegisterService getRegisterService() {
+        return registerService;
+    }
+
+    public void setRegisterService(RegisterService registerService) {
+        this.registerService = registerService;
+    }
+
     public ProxyConfig() {
     }
 
-    public ProxyConfig(Class<T> clazz, String serviceVersion, String serviceGroup, String serializationType, long timeout , Consumer consumer, boolean async, boolean oneway) {
+    public ProxyConfig(Class<T> clazz, String serviceVersion, String serviceGroup, String serializationType, long timeout , Consumer consumer, boolean async, boolean oneway,RegisterService registerService) {
         this.clazz = clazz;
         this.serviceVersion = serviceVersion;
         this.serviceGroup = serviceGroup;
@@ -55,6 +66,7 @@ public class ProxyConfig<T> implements Serializable {
         this.serializationType = serializationType;
         this.async = async;
         this.oneway = oneway;
+        this.registerService=registerService;
     }
 
     public Class<T> getClazz() {

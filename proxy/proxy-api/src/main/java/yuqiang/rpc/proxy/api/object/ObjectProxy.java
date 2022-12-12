@@ -8,6 +8,7 @@ import yuqiang.rpc.potocol.request.RpcRequest;
 import yuqiang.rpc.proxy.api.async.IAsyncObjectProxy;
 import yuqiang.rpc.proxy.api.consumer.Consumer;
 import yuqiang.rpc.proxy.api.future.RpcFuture;
+import yuqiang.rpc.register.api.RegisterService;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -54,11 +55,13 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
      */
     private boolean oneway;
 
+    private RegisterService registerService;
+
     public ObjectProxy(Class<T> clazz) {
         this.clazz = clazz;
     }
 
-    public ObjectProxy(Class<T> clazz, String serviceVersion, String serviceGroup, String serializationType, long timeout, Consumer consumer, boolean async, boolean oneway) {
+    public ObjectProxy(Class<T> clazz, String serviceVersion, String serviceGroup, String serializationType, long timeout, Consumer consumer, boolean async, boolean oneway,RegisterService registerService) {
         this.clazz = clazz;
         this.serviceVersion = serviceVersion;
         this.timeout = timeout;
@@ -67,6 +70,7 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
         this.serializationType = serializationType;
         this.async = async;
         this.oneway = oneway;
+        this.registerService=registerService;
     }
 
     @Override
@@ -116,7 +120,7 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
             }
         }
 
-        RpcFuture rpcFuture = this.consumer.sendRequest(requestRpcProtocol);
+        RpcFuture rpcFuture = this.consumer.sendRequest(requestRpcProtocol,registerService);
         return rpcFuture == null ? null : timeout > 0 ? rpcFuture.get(timeout, TimeUnit.MILLISECONDS) : rpcFuture.get();
     }
 
@@ -125,8 +129,10 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
         RpcProtocol<RpcRequest> requestRpcProtocol = createRequest(this.clazz.getName(), functionName, args);
         RpcFuture rpcFuture = null;
         try {
-            rpcFuture = this.consumer.sendRequest(requestRpcProtocol);
+            rpcFuture = this.consumer.sendRequest(requestRpcProtocol,registerService);
         } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
         return rpcFuture;

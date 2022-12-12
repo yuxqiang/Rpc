@@ -3,6 +3,7 @@ package yuqiang.rpc.proxy.api.consumer;
 import yuqiang.rpc.potocol.RpcProtocol;
 import yuqiang.rpc.potocol.request.RpcRequest;
 import yuqiang.rpc.proxy.api.future.RpcFuture;
+import yuqiang.rpc.register.api.RegisterService;
 
 public interface Consumer {
 
@@ -11,5 +12,5 @@ public interface Consumer {
      * @param protocol
      * @return
      */
-    RpcFuture sendRequest(RpcProtocol<RpcRequest> protocol) throws InterruptedException;
+    RpcFuture sendRequest(RpcProtocol<RpcRequest> protocol, RegisterService registerService) throws Exception;
 }
