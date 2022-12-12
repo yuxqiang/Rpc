@@ -3,11 +3,11 @@ package yuqiang.rpc.proxy.api.jdk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import yuqiang.rpc.proxy.api.BaseProxyFactory;
-import yuqiang.rpc.proxy.api.consumer.Consumer;
-import yuqiang.rpc.proxy.api.object.ObjectProxy;
+import yuqiang.rpc.spi.annotation.SPIClass;
 
 import java.lang.reflect.Proxy;
 
+@SPIClass
 public class JdkProxyFactory extends BaseProxyFactory {
     private final Logger logger = LoggerFactory.getLogger(JdkProxyFactory.class);
     @Override

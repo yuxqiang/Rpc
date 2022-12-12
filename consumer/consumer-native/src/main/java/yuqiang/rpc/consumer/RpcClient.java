@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 import yuqiang.rpc.common.exception.RegistryException;
 import yuqiang.rpc.consumer.common.RpcConsumer;
+import yuqiang.rpc.proxy.api.ProxyFactory;
 import yuqiang.rpc.proxy.api.async.IAsyncObjectProxy;
 import yuqiang.rpc.proxy.api.config.ProxyConfig;
 import yuqiang.rpc.proxy.api.jdk.JdkProxyFactory;
@@ -12,6 +13,7 @@ import yuqiang.rpc.proxy.api.object.ObjectProxy;
 import yuqiang.rpc.register.api.RegisterService;
 import yuqiang.rpc.register.api.config.RegisterConfig;
 import yuqiang.rpc.registry.zookeeper.ZookeeperRegistryService;
+import yuqiang.rpc.spi.loader.ExtensionLoader;
 
 public class RpcClient {
     private final Logger logger = LoggerFactory.getLogger(RpcClient.class);
@@ -31,9 +33,12 @@ public class RpcClient {
     private boolean oneway;
 
     private RegisterService registerService;
-    public RpcClient(String registryAddress, String registryType,String serviceVersion, String serviceGroup, long timeout, String serializationType, boolean async, boolean oneway) {
+
+    private String proxy;
+    public RpcClient(String registryAddress, String registryType,String proxy,String serviceVersion, String serviceGroup, long timeout, String serializationType, boolean async, boolean oneway) {
         this.serviceVersion = serviceVersion;
         this.serviceGroup = serviceGroup;
+        this.proxy=proxy;
         this.timeout = timeout;
         this.serializationType = serializationType;
         this.async = async;
@@ -42,9 +47,11 @@ public class RpcClient {
     }
 
     public <T> T create(Class<T> interfaceClass) {
-        JdkProxyFactory jdkProxyFactory = new JdkProxyFactory();
-        jdkProxyFactory.init(new ProxyConfig(interfaceClass,serviceVersion,serviceGroup,serializationType,timeout,RpcConsumer.getInstance(), async, oneway,registerService));
-        return jdkProxyFactory.getProxy(interfaceClass);
+        //JdkProxyFactory jdkProxyFactory = new JdkProxyFactory();
+
+        ProxyFactory proxyFactory = ExtensionLoader.getExtension(ProxyFactory.class,proxy);
+        proxyFactory.init(new ProxyConfig(interfaceClass,serviceVersion,serviceGroup,serializationType,timeout,RpcConsumer.getInstance(), async, oneway,registerService));
+        return proxyFactory.getProxy(interfaceClass);
     }
 
     public <T> IAsyncObjectProxy createAsync(Class<T> interfaceClass) {
